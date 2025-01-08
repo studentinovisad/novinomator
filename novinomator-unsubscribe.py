@@ -2,14 +2,14 @@ import boto3
 import os
 
 def lambda_handler(event, context):
-    unconfirmed_subscribers_table_name = os.getenv("UNCONFIRMED_SUBSCRIBERS_TABLE_NAME")
-    subscribers_table_name = os.getenv("SUBSCRIBERS_TABLE_NAME")
+    confirm_subscriptions_table_name = os.getenv("CONFIRM_SUBSCRIPTIONS_TABLE_NAME")
+    subscriptions_table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
     
-    if any(var is None for var in [unconfirmed_subscribers_table_name, subscribers_table_name]):
+    if any(var is None for var in [confirm_subscriptions_table_name, subscriptions_table_name]):
         return {"statusCode": 500, "body": "Environment variables not set"}
     
-    unconfirmed_subscribers_table = boto3.resource("dynamodb").Table(unconfirmed_subscribers_table_name)
-    subscribers_table = boto3.resource("dynamodb").Table(subscribers_table_name)
+    unconfirmed_subscribers_table = boto3.resource("dynamodb").Table(confirm_subscriptions_table_name)
+    subscribers_table = boto3.resource("dynamodb").Table(subscriptions_table_name)
     
     user_uuid = str(event["queryStringParameters"]["uuid"])
     email = get_email(unconfirmed_subscribers_table, user_uuid)

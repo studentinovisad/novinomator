@@ -9,7 +9,7 @@ def lambda_handler(event, context):
     whitelist = whitelist.split(",")
     server_sender_email = os.getenv("SENDER_EMAIL")
     bucket_name = os.getenv("BUCKET_NAME")
-    table_name = os.getenv("SUBSCRIBERS_TABLE_NAME")
+    table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
     unsubscribe_url = os.getenv("UNSUBSCRIBE_URL")
     valid_topics = os.getenv("VALID_TOPICS")
     valid_topics = valid_topics.split(",")

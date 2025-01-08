@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 
 def lambda_handler(event, context):
-    table_name = os.getenv("UNCONFIRMED_UNSUBSCRIBERS_TABLE_NAME")
+    table_name = os.getenv("CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME")
     sender_email = os.getenv("SENDER_EMAIL")
     unsubscribe_url = os.getenv("UNSUBSCRIBE_URL")
     ttl = os.getenv("TTL")
