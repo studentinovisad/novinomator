@@ -1,4 +1,3 @@
-import json
 import uuid
 import os
 import boto3
@@ -7,34 +6,35 @@ from botocore.exceptions import ClientError
 
 
 def lambda_handler(event, context):
-    table = boto3.resource('dynamodb').Table(os.getenv('UNCONFIRMED_SUBSCRIBERS_TABLE_NAME'))
-    sender_email = os.getenv('SENDER_EMAIL')
-    subscribe_url = os.getenv('SUBSCRIBE_URL')
-    ttl = os.getenv('TTL')
+    table_name = os.getenv("UNCONFIRMED_SUBSCRIBERS_TABLE_NAME")
+    sender_email = os.getenv("SENDER_EMAIL")
+    subscribe_url = os.getenv("SUBSCRIBE_URL")
+    ttl = os.getenv("TTL")
 
-    if any(var is None for var in [table, sender_email, subscribe_url, ttl]):
-        return {"statusCode": 500, "body": json.dumps("Environment variables not set")}
+    if any(var is None for var in [table_name, sender_email, subscribe_url, ttl]):
+        return {"statusCode": 500, "body": "Environment variables not set"}
     
-    recipient = event['queryStringParameters']['email']
-    topics = event['queryStringParameters']['topics']
+    table = boto3.resource("dynamodb").Table(table_name)
+    recipient = event["queryStringParameters"]["email"]
+    topics = event["queryStringParameters"]["topics"]
     recipient_uuid = str(uuid.uuid4())
 
     add_user(table, recipient, topics, recipient_uuid, ttl)
     send_confirmation_email(recipient, recipient_uuid)
 
     return {
-        'statusCode': 200,
-        'body': json.dumps('OK')
+        "statusCode": 200,
+        "body": "OK"
     }
 
 
 def add_user(table, email: str, topics: list, recipient_uuid: str, ttl: int):
     table.put_item(
         Item={
-            'uuid': recipient_uuid,
-            'email': email,
-            'subscribed_topics': topics,
-            'ttl': int(time.time()) + int(ttl)
+            "uuid": recipient_uuid,
+            "email": email,
+            "subscribed_topics": topics,
+            "ttl": int(time.time()) + int(ttl)
         }
     )
 
@@ -59,7 +59,7 @@ def send_confirmation_email(sender_email:str, subscribe_url: str, recipient: str
                 },
             }
         )
-        
+
         print(f"Email sent successfully: {response}")
     except ClientError as e:
-        print(f"Failed to send email: {e.response['Error']['Message']}")
+        print(f"Failed to send email: {e.response["Error"]["Message"]}")

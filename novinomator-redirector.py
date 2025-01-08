@@ -1,4 +1,3 @@
-import json
 import os
 import boto3
 from botocore.exceptions import ClientError
@@ -8,15 +7,18 @@ import re
 def lambda_handler(event, context):
     whitelist = os.getenv("WHITELIST")
     whitelist = whitelist.split(",")
-    server_sender_email = os.getenv('SENDER_EMAIL')
-    bucket = boto3.resource('s3').Bucket(os.getenv('BUCKET_NAME'))
-    table = boto3.resource('dynamodb').Table(os.getenv('SUBSCRIBERS_TABLE_NAME'))
-    unsubscribe_url = os.getenv('UNSUBSCRIBE_URL')
-    valid_topics = os.getenv('VALID_TOPICS')
+    server_sender_email = os.getenv("SENDER_EMAIL")
+    bucket_name = os.getenv("BUCKET_NAME")
+    table_name = os.getenv("SUBSCRIBERS_TABLE_NAME")
+    unsubscribe_url = os.getenv("UNSUBSCRIBE_URL")
+    valid_topics = os.getenv("VALID_TOPICS")
     valid_topics = valid_topics.split(",")
 
-    if any(var is None for var in [whitelist, server_sender_email, bucket, table, unsubscribe_url, valid_topics]):
-        return {"statusCode": 500, "body": json.dumps("Environment variables not set")}
+    if any(var is None for var in [whitelist, server_sender_email, bucket_name, table_name, unsubscribe_url, valid_topics]):
+        return {"statusCode": 500, "body": "Environment variables not set"}
+    
+    bucket = boto3.resource("s3").Bucket(bucket_name)
+    table = boto3.resource("dynamodb").Table(table_name)
 
     info = event["Records"][0]["ses"]["mail"]
     messageId = info["messageId"]
@@ -24,7 +26,7 @@ def lambda_handler(event, context):
     newsletter_sender = info["source"]
 
     if newsletter_sender not in whitelist:
-        return {"statusCode": 403, "body": json.dumps("Forbidden")}
+        return {"statusCode": 403, "body": "Forbidden"}
 
     match = re.search(
         r'Content-Type: text/plain; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
@@ -41,19 +43,19 @@ def lambda_handler(event, context):
     if topics == [] or email_subject == "":
         reply_to_sender(newsletter_sender, valid_topics)
 
-        return {"statusCode": 400, "body": json.dumps("Invalid topics or subject")}
+        return {"statusCode": 400, "body": "Invalid topics or subject"}
 
     subscribers = get_all_users_by_topics(table, topics)
 
     send_newsletter(server_sender_email, unsubscribe_url, email_subject, email_body, subscribers)
 
-    return {"statusCode": 200, "body": json.dumps("OK")}
+    return {"statusCode": 200, "body": "OK"}
 
 
 def get_email_info(bucket, messageId: str) -> str:
     obj = bucket.Object(messageId)
     response = obj.get()
-    email_info = response['Body'].read().decode('utf-8')
+    email_info = response["Body"].read().decode("utf-8")
     
     return email_info
 
@@ -75,11 +77,11 @@ def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
 
 def get_all_users_by_topics(table, topics: list) -> list:
     response = table.scan()
-    users = response['Items']
+    users = response["Items"]
 
     return [
-        user['email'] for user in users 
-        if any(topic in user['subscribed_topics'] for topic in topics)
+        user["email"] for user in users 
+        if any(topic in user["subscribed_topics"] for topic in topics)
     ]
 
 
@@ -109,12 +111,12 @@ def send_newsletter(sender_email: str, unsubscribe_url: str, subject: str, body:
 
         print(f"Email sent successfully: {response}")
     except ClientError as e:
-        print(f"Failed to send email: {e.response['Error']['Message']}")
+        print(f"Failed to send email: {e.response["Error"]["Message"]}")
 
 
 def reply_to_sender(sender_email: str, valid_topics: list):
     ses_client = boto3.client("ses")
-    email_body = f"Invalid topics found. Valid topics are: {', '.join(valid_topics)}. Follow the format: [topic1,topic2] Subject"
+    email_body = f"Invalid topics found. Valid topics are: {", ".join(valid_topics)}. Follow the format: [topic1,topic2] Subject"
     subject = "Invalid topics found"
 
     try:
@@ -133,4 +135,4 @@ def reply_to_sender(sender_email: str, valid_topics: list):
 
         print(f"Email sent successfully: {response}")
     except ClientError as e:
-        print(f"Failed to send email: {e.response['Error']['Message']}")
+        print(f"Failed to send email: {e.response["Error"]["Message"]}")
