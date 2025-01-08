@@ -8,20 +8,22 @@ import re
 def lambda_handler(event, context):
     whitelist = os.getenv("WHITELIST")
     whitelist = whitelist.split(",")
-    sender_email = os.getenv('SENDER_EMAIL')
+    server_sender_email = os.getenv('SENDER_EMAIL')
     bucket = boto3.resource('s3').Bucket(os.getenv('BUCKET_NAME'))
     table = boto3.resource('dynamodb').Table(os.getenv('SUBSCRIBERS_TABLE_NAME'))
     unsubscribe_url = os.getenv('UNSUBSCRIBE_URL')
+    valid_topics = os.getenv('VALID_TOPICS')
+    valid_topics = valid_topics.split(",")
 
-    if any(var is None for var in [whitelist, sender_email, unsubscribe_url, bucket, table]):
+    if any(var is None for var in [whitelist, server_sender_email, bucket, table, unsubscribe_url, valid_topics]):
         return {"statusCode": 500, "body": json.dumps("Environment variables not set")}
 
     info = event["Records"][0]["ses"]["mail"]
     messageId = info["messageId"]
-    emailInfo = get_email_info(messageId, bucket)
-    sender = info["source"]
+    emailInfo = get_email_info(bucket, messageId)
+    newsletter_sender = info["source"]
 
-    if sender not in whitelist:
+    if newsletter_sender not in whitelist:
         return {"statusCode": 403, "body": json.dumps("Forbidden")}
 
     match = re.search(
@@ -33,24 +35,45 @@ def lambda_handler(event, context):
     else:
         email_body = "No text content found in the email."
 
-    topics = [info["commonHeaders"]["subject"]]
-    email_subject = info["commonHeaders"]["subject"]
-    subscribers = get_all_users_by_topics(topics, table)
+    subject_body = info["commonHeaders"]["subject"]
+    topics, email_subject = extract_topics_and_subject(subject_body)
 
-    send_newsletter(sender_email, unsubscribe_url, email_subject, email_body, subscribers)
+    if topics == [] or email_subject == "":
+        reply_to_sender(newsletter_sender, valid_topics)
+
+        return {"statusCode": 400, "body": json.dumps("Invalid topics or subject")}
+
+    subscribers = get_all_users_by_topics(table, topics)
+
+    send_newsletter(server_sender_email, unsubscribe_url, email_subject, email_body, subscribers)
 
     return {"statusCode": 200, "body": json.dumps("OK")}
 
 
-def get_email_info(messageId: str, bucket) -> str:
+def get_email_info(bucket, messageId: str) -> str:
     obj = bucket.Object(messageId)
     response = obj.get()
     email_info = response['Body'].read().decode('utf-8')
     
     return email_info
 
+def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
+    match = re.match(r"\[(.*?)\]\s*(.+)", subject_body)
 
-def get_all_users_by_topics(topics: list, table) -> list:
+    if match:
+        topics = match.group(1).split(",")
+        subject = match.group(2)
+
+        if any(topic not in valid_topics for topic in topics):
+            print("Invalid topic found")
+            return [], ""
+    else:
+        print("No match found")
+    
+    return topics, subject
+
+
+def get_all_users_by_topics(table, topics: list) -> list:
     response = table.scan()
     users = response['Items']
 
@@ -80,6 +103,30 @@ def send_newsletter(sender_email: str, unsubscribe_url: str, subject: str, body:
                 "Subject": {"Data": subject},
                 "Body": {
                     "Html": {"Data": email_body_with_unsubscribe_html}
+                },
+            }
+        )
+
+        print(f"Email sent successfully: {response}")
+    except ClientError as e:
+        print(f"Failed to send email: {e.response['Error']['Message']}")
+
+
+def reply_to_sender(sender_email: str, valid_topics: list):
+    ses_client = boto3.client("ses")
+    email_body = f"Invalid topics found. Valid topics are: {', '.join(valid_topics)}. Follow the format: [topic1,topic2] Subject"
+    subject = "Invalid topics found"
+
+    try:
+        response = ses_client.send_email(
+            Source=sender_email,
+            Destination={
+                "BccAddresses": [sender_email]
+            },
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {
+                    "Text": {"Data": email_body}
                 },
             }
         )
