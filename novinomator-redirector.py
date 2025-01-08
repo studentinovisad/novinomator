@@ -24,7 +24,6 @@ def lambda_handler(event, context):
     if sender not in whitelist:
         return {"statusCode": 403, "body": json.dumps("Forbidden")}
 
-    # Regular expression to capture the text content in the specified section
     match = re.search(
         r'Content-Type: text/plain; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
     )
@@ -84,6 +83,7 @@ def send_newsletter(sender_email: str, unsubscribe_url: str, subject: str, body:
                 },
             }
         )
+
         print(f"Email sent successfully: {response}")
     except ClientError as e:
         print(f"Failed to send email: {e.response['Error']['Message']}")
