@@ -35,10 +35,10 @@ variable "ses_recipients" {
 
 variable "whitelist" {
   description = "Set of whitelisted emails that can send email via the newsletter"
-  type = set(string)
+  type        = set(string)
 }
 
 variable "valid_topics" {
   description = "Set of valid topics that can be used"
-  type = set(string)
+  type        = set(string)
 }

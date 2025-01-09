@@ -100,7 +100,7 @@ resource "aws_ses_receipt_rule" "rule" {
     invocation_type = "Event"
   }
 
-  depends_on = [ aws_lambda_permission.ses_invoke ]
+  depends_on = [aws_lambda_permission.ses_invoke]
 }
 
 resource "aws_ses_active_receipt_rule_set" "active_rule_set" {

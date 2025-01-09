@@ -75,12 +75,12 @@ module "lambda_redirector" {
   ]
 
   environment = {
-    "WHITELIST" = join(",", var.whitelist)
-    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
-    "BUCKET_NAME" = module.s3_email_archive.bucket_id
+    "WHITELIST"                = join(",", var.whitelist)
+    "SENDER_EMAIL"             = "no-reply@${var.domain_name}"
+    "BUCKET_NAME"              = module.s3_email_archive.bucket_id
     "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
-    "UNSUBSCRIBE_URL" = "https://${var.domain_name}/unsubscribe"
-    "VALID_TOPICS" = join(",", var.valid_topics)
+    "UNSUBSCRIBE_URL"          = "https://${var.domain_name}/unsubscribe"
+    "VALID_TOPICS"             = join(",", var.valid_topics)
   }
 }
 
@@ -118,7 +118,7 @@ module "lambda_subscribe" {
 
   environment = {
     "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
-    "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
+    "SUBSCRIPTIONS_TABLE_NAME"         = module.dynamodb_subscriptions.dynamodb_table_name
   }
 }
 
@@ -154,9 +154,9 @@ module "lambda_confirm_subscribe" {
 
   environment = {
     "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
-    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
-    "SUBSCRIBE_URL" = "https://${var.domain_name}/subscribe/verify"
-    "TTL" = "3600"
+    "SENDER_EMAIL"                     = "no-reply@${var.domain_name}"
+    "SUBSCRIBE_URL"                    = "https://${var.domain_name}/subscribe/verify"
+    "TTL"                              = "3600"
   }
 }
 
@@ -194,7 +194,7 @@ module "lambda_unsubscribe" {
 
   environment = {
     "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
-    "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
+    "SUBSCRIPTIONS_TABLE_NAME"           = module.dynamodb_subscriptions.dynamodb_table_name
   }
 }
 
@@ -230,9 +230,9 @@ module "lambda_confirm_unsubscribe" {
 
   environment = {
     "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
-    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
-    "SUBSCRIBE_URL" = "https://${var.domain_name}/unsubscribe/verify"
-    "TTL" = "3600"
+    "SENDER_EMAIL"                       = "no-reply@${var.domain_name}"
+    "SUBSCRIBE_URL"                      = "https://${var.domain_name}/unsubscribe/verify"
+    "TTL"                                = "3600"
   }
 }
 
@@ -309,11 +309,11 @@ module "cloudfront_cdn" {
 module "ses" {
   source = "../../modules/ses"
 
-  domain_name     = var.ses_domain_name
-  hosted_zone_id  = var.hosted_zone_id
-  bucket_name     = module.s3_email_archive.bucket_id
-  bucket_policy_arn = module.s3_email_archive.policy_put_object_arn
+  domain_name          = var.ses_domain_name
+  hosted_zone_id       = var.hosted_zone_id
+  bucket_name          = module.s3_email_archive.bucket_id
+  bucket_policy_arn    = module.s3_email_archive.policy_put_object_arn
   lambda_function_name = module.lambda_redirector.function_name
-  lambda_arn      = module.lambda_redirector.arn
-  recipients      = var.ses_recipients
+  lambda_arn           = module.lambda_redirector.arn
+  recipients           = var.ses_recipients
 }
