@@ -6,7 +6,6 @@ import re
 
 def lambda_handler(event, context):
     whitelist = os.getenv("WHITELIST")
-    whitelist = whitelist.split(",")
     server_sender_email = os.getenv("SENDER_EMAIL")
     bucket_name = os.getenv("BUCKET_NAME")
     table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
@@ -17,6 +16,7 @@ def lambda_handler(event, context):
     if any(var is None for var in [whitelist, server_sender_email, bucket_name, table_name, unsubscribe_url, valid_topics]):
         return {"statusCode": 500, "body": "Environment variables not set"}
     
+    whitelist = whitelist.split(",")
     bucket = boto3.resource("s3").Bucket(bucket_name)
     table = boto3.resource("dynamodb").Table(table_name)
 
@@ -38,10 +38,10 @@ def lambda_handler(event, context):
         email_body = "No text content found in the email."
 
     subject_body = info["commonHeaders"]["subject"]
-    topics, email_subject = extract_topics_and_subject(subject_body)
+    topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
 
     if topics == [] or email_subject == "":
-        reply_to_sender(newsletter_sender, valid_topics)
+        reply_to_sender(server_sender_email, newsletter_sender, valid_topics)
 
         return {"statusCode": 400, "body": "Invalid topics or subject"}
 
@@ -91,13 +91,13 @@ def append_unsubscribe_link_html(unsubscribe_url: str, body: str) -> str:
     return f"<div>{body}</div>{unsubscribe_html}"
 
 
-def send_newsletter(sender_email: str, unsubscribe_url: str, subject: str, body: str, recipients: list):
+def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, body: str, recipients: list):
     ses_client = boto3.client("ses")
     email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, body)
 
     try:
         response = ses_client.send_email(
-            Source=sender_email,
+            Source=server_sender_email,
             Destination={
                 "BccAddresses": recipients
             },
@@ -114,16 +114,16 @@ def send_newsletter(sender_email: str, unsubscribe_url: str, subject: str, body:
         print(f"Failed to send email: {e.response["Error"]["Message"]}")
 
 
-def reply_to_sender(sender_email: str, valid_topics: list):
+def reply_to_sender(server_sender_email: str, newsletter_sender_email: str, valid_topics: list):
     ses_client = boto3.client("ses")
     email_body = f"Invalid topics found. Valid topics are: {", ".join(valid_topics)}. Follow the format: [topic1,topic2] Subject"
     subject = "Invalid topics found"
 
     try:
         response = ses_client.send_email(
-            Source=sender_email,
+            Source=server_sender_email,
             Destination={
-                "BccAddresses": [sender_email]
+                "BccAddresses": [newsletter_sender_email]
             },
             Message={
                 "Subject": {"Data": subject},
