@@ -18,8 +18,13 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "bucket_role_arn" {
+variable "bucket_policy_arn" {
   description = "The ARN of the bucket role with permissions to store received emails"
+  type        = string
+}
+
+variable "lambda_function_name" {
+  description = "The name of the Lambda to trigger on email received"
   type        = string
 }
 

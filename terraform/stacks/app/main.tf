@@ -112,7 +112,7 @@ module "lambda_subscribe" {
 module "src_archiver_confirm_subscribe" {
   source = "../../modules/src-archiver"
 
-  source_file = "${var.source_code_path}/confirm_subscribe.py"
+  source_file = "${var.source_code_path}/confirm-subscribe.py"
 }
 
 module "s3_src_upload_confirm_subscribe" {
@@ -176,7 +176,7 @@ module "lambda_unsubscribe" {
 module "src_archiver_confirm_unsubscribe" {
   source = "../../modules/src-archiver"
 
-  source_file = "${var.source_code_path}/confirm_unsubscribe.py"
+  source_file = "${var.source_code_path}/confirm-unsubscribe.py"
 }
 
 module "s3_src_upload_confirm_unsubscribe" {
@@ -279,7 +279,8 @@ module "ses" {
   domain_name     = var.ses_domain_name
   hosted_zone_id  = var.hosted_zone_id
   bucket_name     = module.s3_email_archive.bucket_id
-  bucket_role_arn = module.s3_email_archive.policy_put_object_arn
-  lambda_arn      = module.lambda_redirector.invoke_arn
+  bucket_policy_arn = module.s3_email_archive.policy_put_object_arn
+  lambda_function_name = module.lambda_redirector.function_name
+  lambda_arn      = module.lambda_redirector.arn
   recipients      = var.ses_recipients
 }

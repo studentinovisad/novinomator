@@ -2,10 +2,10 @@ resource "aws_route53_record" "ses_dkim" {
   count = 3
 
   zone_id = var.hosted_zone_id
-  name    = "${aws_sesv2_email_identity.ses_identity.dkim_signing_attributes.tokens[count.index]}._domainkey"
+  name    = "${aws_sesv2_email_identity.ses_identity.dkim_signing_attributes[0].tokens[count.index]}._domainkey"
   type    = "CNAME"
   ttl     = "1800"
-  records = ["${aws_sesv2_email_identity.ses_identity.dkim_signing_attributes.tokens[count.index]}.dkim.amazonses.com"]
+  records = ["${aws_sesv2_email_identity.ses_identity.dkim_signing_attributes[0].tokens[count.index]}.dkim.amazonses.com"]
 }
 
 resource "aws_route53_record" "ses_mx" {

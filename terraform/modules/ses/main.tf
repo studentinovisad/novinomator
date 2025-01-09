@@ -91,7 +91,7 @@ resource "aws_ses_receipt_rule" "rule" {
   s3_action {
     position     = 1
     bucket_name  = var.bucket_name
-    iam_role_arn = var.bucket_role_arn
+    iam_role_arn = aws_iam_role.ses_role.arn
   }
 
   lambda_action {
@@ -99,6 +99,8 @@ resource "aws_ses_receipt_rule" "rule" {
     function_arn    = var.lambda_arn
     invocation_type = "Event"
   }
+
+  depends_on = [ aws_lambda_permission.ses_invoke ]
 }
 
 resource "aws_ses_active_receipt_rule_set" "active_rule_set" {
