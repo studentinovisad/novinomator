@@ -116,6 +116,7 @@ def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str
         response = ses_client.send_email(
             Source=server_sender_email,
             Destination={
+                "ToAddresses": [server_sender_email],
                 "BccAddresses": recipients
             },
             Message={
