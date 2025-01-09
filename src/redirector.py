@@ -13,7 +13,7 @@ def lambda_handler(event, context):
     valid_topics = os.getenv("VALID_TOPICS")
 
     if any(var is None for var in [whitelist, server_sender_email, bucket_name, table_name, unsubscribe_url, valid_topics]):
-        return {"statusCode": 500, "body": "Environment variables not set"}
+        raise ValueError("Environment variables not set")
     
     whitelist = whitelist.split(",")
     valid_topics = valid_topics.split(",")
@@ -26,6 +26,7 @@ def lambda_handler(event, context):
     newsletter_sender = info["source"]
 
     if newsletter_sender not in whitelist:
+        print("Sender not in whitelist.")
         return {"statusCode": 403, "body": "Forbidden"}
 
     match = re.search(
@@ -35,7 +36,8 @@ def lambda_handler(event, context):
     if match:
         email_body_plain = match.group(1).strip()
     else:
-        email_body_plain = "No plain text content found in the email."
+        print("No text content found in the email.")
+        return {"statusCode": 400, "body": "No text content found in the email."}
 
     match = re.search(
         r'Content-Type: text/html; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
@@ -44,15 +46,16 @@ def lambda_handler(event, context):
     if match:
         email_body_html = match.group(1).strip()
     else:
-        email_body_html = "No text content found in the email."
+        print("No text content found in the email.")
+        return {"statusCode": 400, "body": "No text content found in the email."}
 
     subject_body = info["commonHeaders"]["subject"]
-    topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
-    # Email subject does not contain topics!!!
 
-    if topics == [] or email_subject == "":
+    try:
+        topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
+    except Exception as e:
+        print(f"Error: {e}")
         reply_to_sender(server_sender_email, newsletter_sender, valid_topics)
-
         return {"statusCode": 400, "body": "Invalid topics or subject"}
 
     subscribers = get_all_users_by_topics(table, topics)
@@ -63,13 +66,13 @@ def lambda_handler(event, context):
 
 
 def get_email_info(bucket, messageId: str) -> str:
-    obj = bucket.Object(messageId)
-    response = obj.get()
+    response = bucket.Object(messageId).get()
     email_info = response["Body"].read().decode("utf-8")
     
     return email_info
 
-def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
+
+def extract_topics_and_subject(valid_topics: list[str], subject_body: str) -> tuple:
     match = re.match(r"\[(.*?)\]\s*(.+)", subject_body)
 
     if match:
@@ -78,16 +81,14 @@ def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
         subject = match.group(2)
 
         if any(topic not in valid_topics for topic in topics):
-            print("Invalid topic found")
-            return [], ""
+            raise ValueError("Invalid topics found")
     else:
-        print("No match found")
-        return [], ""
+        raise ValueError("Either no topics found or invalid format")
     
     return topics, subject
 
 
-def get_all_users_by_topics(table, topics: list) -> list:
+def get_all_users_by_topics(table, topics: list[str]) -> list:
     response = table.scan()
     users = response["Items"]
 
@@ -109,7 +110,7 @@ def append_unsubscribe_link_html(unsubscribe_url: str, email_body: str) -> str:
     return f"<div>{email_body}</div>{unsubscribe_html}"
 
 
-def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, email_body_plain: str, email_body_html: str, recipients: list):
+def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, email_body_plain: str, email_body_html: str, recipients: list[str]):
     ses_client = boto3.client("ses")
     email_body_with_unsubscribe_plain = append_unsubscribe_link_plain(unsubscribe_url, email_body_plain)
     email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, email_body_html)
