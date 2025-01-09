@@ -33,9 +33,18 @@ def lambda_handler(event, context):
     )
 
     if match:
-        email_body = match.group(1).strip()
+        email_body_plain = match.group(1).strip()
     else:
-        email_body = "No text content found in the email."
+        email_body_plain = "No plain text content found in the email."
+
+    match = re.search(
+        r'Content-Type: text/html; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
+    )
+
+    if match:
+        email_body_html = match.group(1).strip()
+    else:
+        email_body_html = "No text content found in the email."
 
     subject_body = info["commonHeaders"]["subject"]
     topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
@@ -47,7 +56,7 @@ def lambda_handler(event, context):
 
     subscribers = get_all_users_by_topics(table, topics)
 
-    send_newsletter(server_sender_email, unsubscribe_url, email_subject, email_body, subscribers)
+    send_newsletter(server_sender_email, unsubscribe_url, email_subject, email_body_plain, email_body_html, subscribers)
 
     return {"statusCode": 200, "body": "OK"}
 
@@ -86,15 +95,22 @@ def get_all_users_by_topics(table, topics: list) -> list:
     ]
 
 
-def append_unsubscribe_link_html(unsubscribe_url: str, body: str) -> str:
+def append_unsubscribe_link_plain(unsubscribe_url: str, email_body: str) -> str:
+    unsubscribe_plain = f'To unsubscribe, go to the following link: {unsubscribe_url}'
+
+    return f"{email_body} {unsubscribe_plain}"
+
+
+def append_unsubscribe_link_html(unsubscribe_url: str, email_body: str) -> str:
     unsubscribe_html = f'<p style="margin-top: 20px;">To unsubscribe, <a href="{unsubscribe_url}" target="_blank">click here</a>.</p>'
 
-    return f"<div>{body}</div>{unsubscribe_html}"
+    return f"<div>{email_body}</div>{unsubscribe_html}"
 
 
-def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, body: str, recipients: list):
+def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, email_body_plain: str, email_body_html: str, recipients: list):
     ses_client = boto3.client("ses")
-    email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, body)
+    email_body_with_unsubscribe_plain = append_unsubscribe_link_plain(unsubscribe_url, email_body_plain)
+    email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, email_body_plain)
 
     try:
         response = ses_client.send_email(
@@ -105,6 +121,7 @@ def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str
             Message={
                 "Subject": {"Data": subject},
                 "Body": {
+                    "Text": {"Data": email_body_with_unsubscribe_plain},
                     "Html": {"Data": email_body_with_unsubscribe_html}
                 },
             }

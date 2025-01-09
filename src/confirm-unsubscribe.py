@@ -41,7 +41,8 @@ def add_user(table, email: str, recipient_uuid: str, ttl: int):
 
 def send_confirmation_email(server_sender_email:str, unsubscribe_url:str, recipient: str, recipient_uuid: str):
     ses_client = boto3.client("ses")
-    email_body = f'<p style="margin-top: 20px;">To unsubscribe, <a href="{unsubscribe_url}_{recipient_uuid}" target="_blank">click here</a>.</p>'
+    email_body_plain = f"To unsubscribe, go to the following link: {unsubscribe_url}_{recipient_uuid}"
+    email_body_html = f'<p style="margin-top: 20px;">To unsubscribe, <a href="{unsubscribe_url}_{recipient_uuid}" target="_blank">click here</a>.</p>'
     subject = "Unsubscribe from our newsletter"
 
     try:
@@ -53,7 +54,8 @@ def send_confirmation_email(server_sender_email:str, unsubscribe_url:str, recipi
             Message={
                 "Subject": {"Data": subject},
                 "Body": {
-                    "Html": {"Data": email_body}
+                    "Text": {"Data": email_body_plain},
+                    "Html": {"Data": email_body_html}
                 },
             }
         )
