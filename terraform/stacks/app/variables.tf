@@ -22,3 +22,13 @@ variable "source_code_path" {
   description = "Path to the source code containing all functions' code"
   type        = string
 }
+
+variable "ses_domain_name" {
+  description = "Domain name to use for SES"
+  type        = string
+}
+
+variable "ses_recipients" {
+  description = "Set of recipients allowed to receive emails"
+  type        = set(string)
+}

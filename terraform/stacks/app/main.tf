@@ -272,3 +272,14 @@ module "cloudfront_cdn" {
     aws = aws.global
   }
 }
+
+module "ses" {
+  source = "../../modules/ses"
+
+  domain_name     = var.ses_domain_name
+  hosted_zone_id  = var.hosted_zone_id
+  bucket_name     = module.s3_email_archive.bucket_id
+  bucket_role_arn = module.s3_email_archive.policy_put_object_arn
+  lambda_arn      = module.lambda_redirector.invoke_arn
+  recipients      = var.ses_recipients
+}
