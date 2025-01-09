@@ -12,9 +12,13 @@ dependency "dns" {
 }
 
 inputs = {
-  aws_profile = include.root.locals.aws_profile
-  project_name = "novinomator"
-  domain_name = "newsletter.${include.root.locals.domain_name}"
-  hosted_zone_id = dependency.dns.outputs.hosted_zone_id
+  aws_profile      = include.root.locals.aws_profile
+  project_name     = "novinomator"
+  domain_name      = "newsletter.${include.root.locals.domain_name}"
+  hosted_zone_id   = dependency.dns.outputs.hosted_zone_id
   source_code_path = "../../src"
+  ses_domain_name  = include.root.locals.domain_name
+  ses_recipients   = ["newsletter@${include.root.locals.domain_name}"]
+  whitelist        = ["sir@tmina.org"]
+  valid_topics     = ["test"]
 }

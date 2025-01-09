@@ -22,3 +22,23 @@ variable "source_code_path" {
   description = "Path to the source code containing all functions' code"
   type        = string
 }
+
+variable "ses_domain_name" {
+  description = "Domain name to use for SES"
+  type        = string
+}
+
+variable "ses_recipients" {
+  description = "Set of recipients allowed to receive emails"
+  type        = set(string)
+}
+
+variable "whitelist" {
+  description = "Set of whitelisted emails that can send email via the newsletter"
+  type        = set(string)
+}
+
+variable "valid_topics" {
+  description = "Set of valid topics that can be used"
+  type        = set(string)
+}
