@@ -73,6 +73,7 @@ def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
 
     if match:
         topics = match.group(1).split(",")
+        topics = [topic.toLowerCase().strip() for topic in topics]
         subject = match.group(2)
 
         if any(topic not in valid_topics for topic in topics):
