@@ -11,12 +11,12 @@ def lambda_handler(event, context):
     table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
     unsubscribe_url = os.getenv("UNSUBSCRIBE_URL")
     valid_topics = os.getenv("VALID_TOPICS")
-    valid_topics = valid_topics.split(",")
 
     if any(var is None for var in [whitelist, server_sender_email, bucket_name, table_name, unsubscribe_url, valid_topics]):
         return {"statusCode": 500, "body": "Environment variables not set"}
     
     whitelist = whitelist.split(",")
+    valid_topics = valid_topics.split(",")
     bucket = boto3.resource("s3").Bucket(bucket_name)
     table = boto3.resource("dynamodb").Table(table_name)
 
@@ -71,6 +71,7 @@ def extract_topics_and_subject(valid_topics: list, subject_body: str) -> tuple:
             return [], ""
     else:
         print("No match found")
+        return [], ""
     
     return topics, subject
 
