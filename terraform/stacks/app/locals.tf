@@ -8,8 +8,8 @@ locals {
     {
       function_name = module.lambda_subscribe.function_name
       invoke_arn    = module.lambda_subscribe.invoke_arn
-      route         = "/subscribe/success"
-      method        = "POST"
+      route         = "/subscribe/verify"
+      method        = "GET"
     },
     {
       function_name = module.lambda_confirm_subscribe.function_name
@@ -20,8 +20,8 @@ locals {
     {
       function_name = module.lambda_unsubscribe.function_name
       invoke_arn    = module.lambda_unsubscribe.invoke_arn
-      route         = "/unsubscribe/success"
-      method        = "POST"
+      route         = "/unsubscribe/verify"
+      method        = "GET"
     },
     {
       function_name = module.lambda_confirm_unsubscribe.function_name
