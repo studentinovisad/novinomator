@@ -49,6 +49,7 @@ def send_confirmation_email(server_sender_email:str, unsubscribe_url:str, recipi
         response = ses_client.send_email(
             Source=server_sender_email,
             Destination={
+                "ToAddresses": [server_sender_email],
                 "BccAddresses": [recipient]
             },
             Message={

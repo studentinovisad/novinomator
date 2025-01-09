@@ -141,6 +141,7 @@ def reply_to_sender(server_sender_email: str, newsletter_sender_email: str, vali
         response = ses_client.send_email(
             Source=server_sender_email,
             Destination={
+                "ToAddresses": [server_sender_email],
                 "BccAddresses": [newsletter_sender_email]
             },
             Message={
