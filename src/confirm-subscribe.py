@@ -12,7 +12,7 @@ def lambda_handler(event, context):
     ttl = os.getenv("TTL")
 
     if any(var is None for var in [table_name, server_sender_email, subscribe_url, ttl]):
-        return {"statusCode": 500, "body": "Environment variables not set"}
+        raise ValueError("Environment variables not set")
     
     table = boto3.resource("dynamodb").Table(table_name)
     recipient = event["queryStringParameters"]["email"]
@@ -22,13 +22,10 @@ def lambda_handler(event, context):
     add_user(table, recipient, topics, recipient_uuid, ttl)
     send_confirmation_email(server_sender_email, subscribe_url, recipient, recipient_uuid)
 
-    return {
-        "statusCode": 200,
-        "body": "OK"
-    }
+    return {"statusCode": 200, "body": "OK"}
 
 
-def add_user(table, email: str, topics: list, recipient_uuid: str, ttl: int):
+def add_user(table, email: str, topics: list[str], recipient_uuid: str, ttl: int):
     table.put_item(
         Item={
             "uuid": recipient_uuid,

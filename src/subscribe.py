@@ -13,9 +13,11 @@ def lambda_handler(event, context):
     subscribers_table = boto3.resource("dynamodb").Table(subscriptions_table_name)
     
     user_uuid = str(event["queryStringParameters"]["uuid"])
-    user_info = get_user(unconfirmed_subscribers_table, user_uuid)
 
-    if user_info is None:
+    try:
+        user_info = get_user(unconfirmed_subscribers_table, user_uuid)
+    except Exception as e:
+        print(f"Error: {e}")
         return {"statusCode": 404, "body": "User not found"}
     
     remove_user(unconfirmed_subscribers_table, user_info["uuid"])
@@ -28,7 +30,7 @@ def get_user(table, user_uuid: str):
     response = table.get_item(Key={"uuid": user_uuid})
 
     if "Item" not in response:
-        return None
+        raise Exception(f"User with uuid: {user_uuid} not found")
 
     return response["Item"]
 
