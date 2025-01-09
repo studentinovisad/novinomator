@@ -48,6 +48,7 @@ def lambda_handler(event, context):
 
     subject_body = info["commonHeaders"]["subject"]
     topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
+    # Email subject does not contain topics!!!
 
     if topics == [] or email_subject == "":
         reply_to_sender(server_sender_email, newsletter_sender, valid_topics)
@@ -111,7 +112,7 @@ def append_unsubscribe_link_html(unsubscribe_url: str, email_body: str) -> str:
 def send_newsletter(server_sender_email: str, unsubscribe_url: str, subject: str, email_body_plain: str, email_body_html: str, recipients: list):
     ses_client = boto3.client("ses")
     email_body_with_unsubscribe_plain = append_unsubscribe_link_plain(unsubscribe_url, email_body_plain)
-    email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, email_body_plain)
+    email_body_with_unsubscribe_html = append_unsubscribe_link_html(unsubscribe_url, email_body_html)
 
     try:
         response = ses_client.send_email(
