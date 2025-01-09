@@ -43,7 +43,7 @@ def add_user(table, email: str, topics: list, recipient_uuid: str, ttl: int):
 
 def send_confirmation_email(server_sender_email:str, subscribe_url: str, recipient: str, recipient_uuid: str):
     ses_client = boto3.client("ses")
-    email_body_plain = f"To subscribe, go to the following link: {subscribe_url}_{recipient_uuid}"
+    email_body_plain = f"To subscribe, go to the following link: {subscribe_url}?uuid={recipient_uuid}"
     email_body_html = f'<p style="margin-top: 20px;">To subscribe, <a href="{subscribe_url}?uuid={recipient_uuid}" target="_blank">click here</a>.</p>'
     subject = "Subscribe to the newsletter"
 
