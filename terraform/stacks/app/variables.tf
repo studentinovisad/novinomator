@@ -32,3 +32,13 @@ variable "ses_recipients" {
   description = "Set of recipients allowed to receive emails"
   type        = set(string)
 }
+
+variable "whitelist" {
+  description = "Set of whitelisted emails that can send email via the newsletter"
+  type = set(string)
+}
+
+variable "valid_topics" {
+  description = "Set of valid topics that can be used"
+  type = set(string)
+}

@@ -73,6 +73,15 @@ module "lambda_redirector" {
     module.s3_email_archive.policy_get_object_arn,
     module.dynamodb_subscriptions.policy_scan_arn
   ]
+
+  environment = {
+    "WHITELIST" = join(",", var.whitelist)
+    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
+    "BUCKET_NAME" = module.s3_email_archive.bucket_id
+    "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
+    "UNSUBSCRIBE_URL" = "https://${var.domain_name}/unsubscribe"
+    "VALID_TOPICS" = join(",", var.valid_topics)
+  }
 }
 
 # Subscribe
@@ -106,6 +115,11 @@ module "lambda_subscribe" {
     module.dynamodb_confirm_subscriptions.policy_delete_item_arn,
     module.dynamodb_subscriptions.policy_put_item_arn
   ]
+
+  environment = {
+    "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
+    "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
+  }
 }
 
 # Confirm Subscribe
@@ -137,6 +151,13 @@ module "lambda_confirm_subscribe" {
   policy_attachment_arns = [
     module.dynamodb_confirm_subscriptions.policy_put_item_arn
   ]
+
+  environment = {
+    "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
+    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
+    "SUBSCRIBE_URL" = "https://${var.domain_name}/subscribe/verify"
+    "TTL" = "3600"
+  }
 }
 
 # Unsubscribe
@@ -170,6 +191,11 @@ module "lambda_unsubscribe" {
     module.dynamodb_confirm_unsubscriptions.policy_delete_item_arn,
     module.dynamodb_subscriptions.policy_delete_item_arn
   ]
+
+  environment = {
+    "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
+    "SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_subscriptions.dynamodb_table_name
+  }
 }
 
 # Confirm Unsubscribe
@@ -201,6 +227,13 @@ module "lambda_confirm_unsubscribe" {
   policy_attachment_arns = [
     module.dynamodb_confirm_unsubscriptions.policy_put_item_arn
   ]
+
+  environment = {
+    "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
+    "SENDER_EMAIL" = "no-reply@${var.domain_name}"
+    "SUBSCRIBE_URL" = "https://${var.domain_name}/unsubscribe/verify"
+    "TTL" = "3600"
+  }
 }
 
 module "acm_certificate_apigateway" {

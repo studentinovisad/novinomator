@@ -19,4 +19,6 @@ inputs = {
   source_code_path = "../../src"
   ses_domain_name  = include.root.locals.domain_name
   ses_recipients   = ["newsletter@${include.root.locals.domain_name}"]
+  whitelist = ["sir@tmina.org"]
+  valid_topics = ["test"]
 }
