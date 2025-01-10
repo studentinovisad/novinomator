@@ -41,7 +41,9 @@ def get_user_info(table, user_uuid: str) -> dict:
 
 
 def remove_user_topics(table, user_info: dict, topics_to_remove: list[str]):
-    user_info["subscribed_topics"] = set(user_info["subscribed_topics"]) - set(topics_to_remove)
+    user_info["subscribed_topics"] = set(user_info["subscribed_topics"]) - set(
+        topics_to_remove
+    )
 
     if user_info["subscribed_topics"]:
         table.update_item(
