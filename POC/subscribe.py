@@ -50,7 +50,9 @@ def add_user(table, user_info: dict):
     response = table.get_item(Key={"email": user_info["email"]})
 
     if "Item" in response:
-        user_info["subscribed_topics"] = set(user_info["subscribed_topics"].append(response["Item"]["subscribed_topics"]))
+        user_info["subscribed_topics"] = set(
+            user_info["subscribed_topics"].append(response["Item"]["subscribed_topics"])
+        )
 
     table.update_item(
         Item={
