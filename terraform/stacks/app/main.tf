@@ -72,7 +72,8 @@ module "lambda_redirector" {
 
   policy_attachment_arns = [
     module.s3_email_archive.policy_get_object_arn,
-    module.dynamodb_subscriptions.policy_scan_arn
+    module.dynamodb_subscriptions.policy_scan_arn,
+    module.ses.policy_send_email_arn
   ]
 
   environment = {
