@@ -4,7 +4,7 @@ include "root" {
 }
 
 terraform {
-  source = "${path_relative_from_include()}/..//stacks/dns"
+  source = "${path_relative_from_include()}/../..//terraform/stacks/dns"
 }
 
 inputs = {

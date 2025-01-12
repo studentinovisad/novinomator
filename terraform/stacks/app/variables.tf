@@ -19,7 +19,12 @@ variable "hosted_zone_id" {
 }
 
 variable "source_code_path" {
-  description = "Path to the source code containing all functions' code"
+  description = "Path to the build containing all Cloudfront, S3 and Lambda code"
+  type        = string
+}
+
+variable "redirector_path" {
+  description = "Path to the source code containing redirector function code"
   type        = string
 }
 

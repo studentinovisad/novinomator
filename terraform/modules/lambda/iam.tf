@@ -33,7 +33,7 @@ resource "aws_iam_policy" "logging" {
   policy      = data.aws_iam_policy_document.logging.json
 }
 
-resource "aws_iam_role_policy_attachment" "policy_attachment_dynamodb" {
+resource "aws_iam_role_policy_attachment" "policy_attachment" {
   count = length(var.policy_attachment_arns)
 
   role       = aws_iam_role.lambda.name
