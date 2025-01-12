@@ -43,11 +43,10 @@ module "dynamodb_confirm_unsubscriptions" {
   ]
 }
 
-# Redirector
 module "src_archiver_redirector" {
   source = "../../modules/src-archiver"
 
-  source_file = "${var.source_code_path}/redirector.py"
+  source_file = "${var.redirector_path}"
 }
 
 module "s3_src_upload_redirector" {
@@ -63,7 +62,9 @@ module "lambda_redirector" {
   source = "../../modules/lambda"
 
   function_name    = "${var.project_name}-redirector"
+  runtime          = "python3.13"
   handler_basename = module.src_archiver_redirector.basename_extentionless
+  handler_function = "lambda_handler"
 
   src_s3_bucket = module.s3_src_upload_redirector.bucket_id
   src_s3_key    = module.s3_src_upload_redirector.s3_key
@@ -84,155 +85,49 @@ module "lambda_redirector" {
   }
 }
 
-# Subscribe
-module "src_archiver_subscribe" {
+module "src_archiver_sveltekit" {
   source = "../../modules/src-archiver"
 
-  source_file = "${var.source_code_path}/subscribe.py"
+  source_file = "${var.source_code_path}/lambda/index.mjs"
 }
 
-module "s3_src_upload_subscribe" {
+module "s3_src_upload_sveltekit" {
   source = "../../modules/s3-src-upload"
 
-  bucket_name          = "${var.project_name}-subscribe-src"
-  filename             = module.src_archiver_subscribe.zipname
-  content_base64       = module.src_archiver_subscribe.content_base64
-  content_base64sha256 = module.src_archiver_subscribe.content_base64sha256
+  bucket_name          = "${var.project_name}-sveltekit-src"
+  filename             = module.src_archiver_sveltekit.zipname
+  content_base64       = module.src_archiver_sveltekit.content_base64
+  content_base64sha256 = module.src_archiver_sveltekit.content_base64sha256
 }
 
-module "lambda_subscribe" {
+module "lambda_sveltekit" {
   source = "../../modules/lambda"
 
-  function_name    = "${var.project_name}-subscribe"
-  handler_basename = module.src_archiver_subscribe.basename_extentionless
+  function_name    = "${var.project_name}-sveltekit"
+  runtime          = "nodejs20.x"
+  handler_basename = module.src_archiver_sveltekit.basename_extentionless
+  handler_function = "handler"
+  keep_warm        = true
 
-  src_s3_bucket = module.s3_src_upload_subscribe.bucket_id
-  src_s3_key    = module.s3_src_upload_subscribe.s3_key
-  src_hash      = module.s3_src_upload_subscribe.source_code_hash
+  src_s3_bucket = module.s3_src_upload_sveltekit.bucket_id
+  src_s3_key    = module.s3_src_upload_sveltekit.s3_key
+  src_hash      = module.s3_src_upload_sveltekit.source_code_hash
 
   policy_attachment_arns = [
-    module.dynamodb_confirm_subscriptions.policy_get_item_arn,
-    module.dynamodb_confirm_subscriptions.policy_delete_item_arn,
-    module.dynamodb_subscriptions.policy_put_item_arn
+    module.ses.policy_send_email_arn,
+    module.dynamodb_subscriptions.policy_gpdu_item_arn,
+    module.dynamodb_confirm_subscriptions.policy_gpdu_item_arn,
+    module.dynamodb_confirm_unsubscriptions.policy_gpdu_item_arn,
   ]
 
   environment = {
-    "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
-    "SUBSCRIPTIONS_TABLE_NAME"         = module.dynamodb_subscriptions.dynamodb_table_name
-  }
-}
-
-# Confirm Subscribe
-module "src_archiver_confirm_subscribe" {
-  source = "../../modules/src-archiver"
-
-  source_file = "${var.source_code_path}/confirm-subscribe.py"
-}
-
-module "s3_src_upload_confirm_subscribe" {
-  source = "../../modules/s3-src-upload"
-
-  bucket_name          = "${var.project_name}-confirm-subscribe-src"
-  filename             = module.src_archiver_confirm_subscribe.zipname
-  content_base64       = module.src_archiver_confirm_subscribe.content_base64
-  content_base64sha256 = module.src_archiver_confirm_subscribe.content_base64sha256
-}
-
-module "lambda_confirm_subscribe" {
-  source = "../../modules/lambda"
-
-  function_name    = "${var.project_name}-confirm-subscribe"
-  handler_basename = module.src_archiver_confirm_subscribe.basename_extentionless
-
-  src_s3_bucket = module.s3_src_upload_confirm_subscribe.bucket_id
-  src_s3_key    = module.s3_src_upload_confirm_subscribe.s3_key
-  src_hash      = module.s3_src_upload_confirm_subscribe.source_code_hash
-
-  policy_attachment_arns = [
-    module.dynamodb_confirm_subscriptions.policy_put_item_arn
-  ]
-
-  environment = {
-    "CONFIRM_SUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_subscriptions.dynamodb_table_name
-    "SENDER_EMAIL"                     = "no-reply@${var.domain_name}"
-    "SUBSCRIBE_URL"                    = "https://${var.domain_name}/subscribe/verify"
-    "TTL"                              = "3600"
-  }
-}
-
-# Unsubscribe
-module "src_archiver_unsubscribe" {
-  source = "../../modules/src-archiver"
-
-  source_file = "${var.source_code_path}/unsubscribe.py"
-}
-
-module "s3_src_upload_unsubscribe" {
-  source = "../../modules/s3-src-upload"
-
-  bucket_name          = "${var.project_name}-unsubscribe-src"
-  filename             = module.src_archiver_unsubscribe.zipname
-  content_base64       = module.src_archiver_unsubscribe.content_base64
-  content_base64sha256 = module.src_archiver_unsubscribe.content_base64sha256
-}
-
-module "lambda_unsubscribe" {
-  source = "../../modules/lambda"
-
-  function_name    = "${var.project_name}-unsubscribe"
-  handler_basename = module.src_archiver_unsubscribe.basename_extentionless
-
-  src_s3_bucket = module.s3_src_upload_unsubscribe.bucket_id
-  src_s3_key    = module.s3_src_upload_unsubscribe.s3_key
-  src_hash      = module.s3_src_upload_unsubscribe.source_code_hash
-
-  policy_attachment_arns = [
-    module.dynamodb_confirm_unsubscriptions.policy_get_item_arn,
-    module.dynamodb_confirm_unsubscriptions.policy_delete_item_arn,
-    module.dynamodb_subscriptions.policy_delete_item_arn
-  ]
-
-  environment = {
-    "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
-    "SUBSCRIPTIONS_TABLE_NAME"           = module.dynamodb_subscriptions.dynamodb_table_name
-  }
-}
-
-# Confirm Unsubscribe
-module "src_archiver_confirm_unsubscribe" {
-  source = "../../modules/src-archiver"
-
-  source_file = "${var.source_code_path}/confirm-unsubscribe.py"
-}
-
-module "s3_src_upload_confirm_unsubscribe" {
-  source = "../../modules/s3-src-upload"
-
-  bucket_name          = "${var.project_name}-confirm-unsubscribe-src"
-  filename             = module.src_archiver_confirm_unsubscribe.zipname
-  content_base64       = module.src_archiver_confirm_unsubscribe.content_base64
-  content_base64sha256 = module.src_archiver_confirm_unsubscribe.content_base64sha256
-}
-
-module "lambda_confirm_unsubscribe" {
-  source = "../../modules/lambda"
-
-  function_name    = "${var.project_name}-confirm-unsubscribe"
-  handler_basename = module.src_archiver_confirm_unsubscribe.basename_extentionless
-
-  src_s3_bucket = module.s3_src_upload_confirm_unsubscribe.bucket_id
-  src_s3_key    = module.s3_src_upload_confirm_unsubscribe.s3_key
-  src_hash      = module.s3_src_upload_confirm_unsubscribe.source_code_hash
-
-  policy_attachment_arns = [
-    module.dynamodb_confirm_unsubscriptions.policy_put_item_arn
-  ]
-
-  environment = {
-    "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
+    "ORIGIN"                             = "https://${var.domain_name}"
     "SENDER_EMAIL"                       = "no-reply@${var.domain_name}"
-    "SUBSCRIBE_URL"                      = "https://${var.domain_name}/unsubscribe/verify"
-    "TTL"                                = "3600"
+    "TOPICS"                             = join(",", var.valid_topics)
+    "VERIFY_TTL"                         = "3600"
+    "SUBSCRIPTIONS_TABLE_NAME"           = module.dynamodb_subscriptions.dynamodb_table_name
+    "CONFIRM_SUBSCRIPTIONS_TABLE_NAME"   = module.dynamodb_confirm_subscriptions.dynamodb_table_name
+    "CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME" = module.dynamodb_confirm_unsubscriptions.dynamodb_table_name
   }
 }
 
@@ -266,6 +161,13 @@ module "acm_certificate_cloudfront" {
   }
 }
 
+module "s3_static_assets_bucket" {
+  source = "../../modules/s3-static-assets-upload"
+
+  bucket_name = "${var.project_name}-static-assets"
+  assets_path = "${var.source_code_path}/s3"
+}
+
 module "cloudfront_cdn" {
   source = "../../modules/cloudfront"
 
@@ -274,28 +176,53 @@ module "cloudfront_cdn" {
   hosted_zone_id      = var.hosted_zone_id
   acm_certificate_arn = module.acm_certificate_cloudfront.cert_arn
 
+  additional_origin_request_header_items = ["X-Forwarded-Host"]
+  additional_cache_header_items          = ["X-Forwarded-Host"]
+
   default_cache_behavior = {
-    # target_origin_id = "s3"
-    target_origin_id = "gateway"
+    target_origin_id = local.apigateway_origin_id
+    allowed_methods  = ["HEAD", "GET", "OPTIONS", "DELETE", "POST", "PUT", "PATCH"]
+    cached_methods   = ["HEAD", "GET"]
+
+    function_associations = [{
+      name    = "sveltekit-rewriter"
+      content = local.cloudfront_sveltekit_rewriter
+    }]
   }
 
-  ordered_cache_behaviors = [
-    for route in local.routes : {
-      path_pattern     = route.route
-      target_origin_id = "gateway"
-      allowed_methods  = ["HEAD", "GET", "OPTIONS", "DELETE", "POST", "PUT", "PATCH"]
-    }
-  ]
+  ordered_cache_behaviors = concat(
+    [
+      for route in module.s3_static_assets_bucket.top_level_assets : {
+        path_pattern     = route
+        target_origin_id = local.s3_static_assets_origin_id
+        allowed_methods  = ["HEAD", "GET", "OPTIONS"]
+        cached_methods   = ["HEAD", "GET"]
+      }
+    ],
+    [
+      # for route in local.routes : {
+      #   path_pattern     = route.route
+      #   target_origin_id = local.apigateway_origin_id
+      #   allowed_methods  = ["HEAD", "GET", "OPTIONS", "DELETE", "POST", "PUT", "PATCH"]
+      #   cached_methods   = ["HEAD", "GET"]
+
+      #   function_associations = [{
+      #     name    = "sveltekit-rewriter"
+      #     content = local.cloudfront_sveltekit_rewriter
+      #   }]
+      # }
+    ]
+  )
 
   origins = [
-    # {
-    #   origin_id = "s3"
-    #   origin_type = "s3"
-    #   domain_name = ""
-    #   s3_oai_id = ""
-    # },
     {
-      origin_id   = "gateway"
+      origin_id = local.s3_static_assets_origin_id
+      origin_type = "s3"
+      domain_name = module.s3_static_assets_bucket.bucket_domain_name
+      s3_oai_id   = module.s3_static_assets_bucket.oai_id
+    },
+    {
+      origin_id   = local.apigateway_origin_id
       origin_type = "custom"
       domain_name = module.apigateway_gateway.target_domain_name
     }

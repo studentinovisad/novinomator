@@ -1,9 +1,9 @@
 resource "aws_lambda_permission" "lambda_permission" {
-  for_each = local.routes_map
+  # for_each = local.routes_map
 
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = each.value.function_name
+  function_name = var.routes[0].function_name # each.value.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.gateway.execution_arn}/*/*"
 }

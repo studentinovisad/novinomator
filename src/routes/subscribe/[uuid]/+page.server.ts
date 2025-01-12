@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getItemByEmail, getItemByUUID } from '$lib/server/info';
 import { deleteItemByUUID } from '$lib/server/delete';
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		const confirmUserInfo = await getItemByUUID(client.dynamodb, confirmTableName, uuid);
 		if (!confirmUserInfo) {
-			return fail(410, {
+			return error(410, {
 				message: 'Confirmation expired'
 			});
 		}
@@ -34,8 +34,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		await deleteItemByUUID(client.dynamodb, confirmTableName, uuid);
 	} catch (e: unknown) {
 		console.error(`Failed to subscribe: ${(e as Error).message}`);
-		return fail(500, {
-			message: 'Internal Server Error'
+		return error(500, {
+			message: `Internal Server Error: ${(e as Error).message}`
 		});
 	}
 

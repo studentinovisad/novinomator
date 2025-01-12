@@ -11,13 +11,11 @@ variable "handler_basename" {
 variable "handler_function" {
   description = "The function name for the entry point of the Lambda function"
   type        = string
-  default     = "lambda_handler"
 }
 
 variable "runtime" {
   description = "The runtime of the Lambda function"
   type        = string
-  default     = "python3.13"
 }
 
 variable "src_s3_bucket" {
@@ -78,7 +76,7 @@ variable "policy_attachment_arns" {
   default     = []
 
   validation {
-    condition     = length(var.policy_attachment_arns) == length(toset(var.policy_attachment_arns))
+    condition     = length(var.policy_attachment_arns) == length(distinct(var.policy_attachment_arns))
     error_message = "Duplicate arns are not allowed"
   }
 }

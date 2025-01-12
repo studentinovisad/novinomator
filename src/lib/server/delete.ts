@@ -1,4 +1,4 @@
-import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import { DeleteItemCommand, type DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 export async function deleteItemByEmail(
 	client: DynamoDBClient,

@@ -25,3 +25,11 @@ output "policy_delete_item_arn" {
 output "policy_update_item_arn" {
   value = aws_iam_policy.update_item.arn
 }
+
+output "policy_gpdu_item_arn" {
+  value = aws_iam_policy.gpdu_item.arn
+}
+
+output "policy_all_item_arn" {
+  value = aws_iam_policy.all_item.arn
+}

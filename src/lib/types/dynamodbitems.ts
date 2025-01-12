@@ -1,20 +1,28 @@
+import type { AttributeValue } from '@aws-sdk/client-dynamodb';
+
 export type SubscriptionItem = {
 	email: string;
 	topics: string[];
 };
 
-export function isSubscriptionItem(data: any): data is SubscriptionItem {
+export function toSubscriptionItem(data: Record<string, AttributeValue>): SubscriptionItem {
 	if (
-		typeof data !== 'object' ||
 		data === null ||
-		typeof data.email !== 'string' ||
-		!Array.isArray(data.topics) ||
-		!data.topics.every((topic: any) => typeof topic === 'string')
+		data === undefined ||
+		typeof data !== 'object' ||
+		typeof data.email !== 'object' ||
+		typeof data.email.S !== 'string' ||
+		typeof data.topics !== 'object' ||
+		!Array.isArray(data.topics.SS) ||
+		!data.topics.SS.every((topic: any) => typeof topic === 'string')
 	) {
-		return false;
-	} else {
-		return true;
+		throw new Error(`Invalid item type (subscription): ${JSON.stringify(data)}`);
 	}
+
+	return {
+		email: data.email.S,
+		topics: data.topics.SS
+	};
 }
 
 export type ConfirmationItem = {
@@ -24,18 +32,35 @@ export type ConfirmationItem = {
 	ttl: number;
 };
 
-export function isConfirmationItem(data: any): data is ConfirmationItem {
+export function toConfirmationItem(data: Record<string, AttributeValue>): ConfirmationItem {
 	if (
-		typeof data !== 'object' ||
 		data === null ||
-		typeof data.uuid !== 'string' ||
-		typeof data.email !== 'string' ||
-		!Array.isArray(data.topics) ||
-		!data.topics.every((topic: any) => typeof topic === 'string') ||
-		typeof data.ttl !== 'number'
+		data === undefined ||
+		typeof data !== 'object' ||
+		typeof data.uuid !== 'object' ||
+		typeof data.uuid.S !== 'string' ||
+		typeof data.email !== 'object' ||
+		typeof data.email.S !== 'string' ||
+		typeof data.topics !== 'object' ||
+		!Array.isArray(data.topics.SS) ||
+		!data.topics.SS.every((topic: any) => typeof topic === 'string') ||
+		typeof data.ttl !== 'object' ||
+		typeof data.ttl.N !== 'string'
 	) {
-		return false;
-	} else {
-		return true;
+		throw new Error(`Invalid item type (subscription): ${JSON.stringify(data)}`);
 	}
+
+	let ttl: number;
+	try {
+		ttl = Number.parseInt(data.ttl.N);
+	} catch (e: unknown) {
+		throw new Error(`Failed to convert TTL string to number: ${(e as Error).message}`);
+	}
+
+	return {
+		uuid: data.uuid.S,
+		email: data.email.S,
+		topics: data.topics.SS,
+		ttl
+	};
 }

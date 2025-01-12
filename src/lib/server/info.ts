@@ -1,11 +1,10 @@
 import {
-	isSubscriptionItem,
-	isConfirmationItem,
+	toSubscriptionItem,
+	toConfirmationItem,
 	type SubscriptionItem,
 	type ConfirmationItem
 } from '$lib/types/dynamodbitems';
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { GetItemCommand, type DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 export async function getItemByEmail(
 	client: DynamoDBClient,
@@ -21,12 +20,7 @@ export async function getItemByEmail(
 		);
 		if (!Item) return null;
 
-		const data = unmarshall(Item);
-		if (!isSubscriptionItem(data)) {
-			throw new Error('Invalid item type');
-		}
-
-		return data;
+		return toSubscriptionItem(Item);
 	} catch (e: unknown) {
 		throw new Error(
 			`Failed to get item from DynamoDB table (${tableName}): ${(e as Error).message}`
@@ -48,12 +42,7 @@ export async function getItemByUUID(
 		);
 		if (!Item) return null;
 
-		const data = unmarshall(Item);
-		if (!isConfirmationItem(data)) {
-			throw new Error('Invalid item type');
-		}
-
-		return data;
+		return toConfirmationItem(Item);
 	} catch (e: unknown) {
 		throw new Error(
 			`Failed to get item from DynamoDB table (${tableName}): ${(e as Error).message}`

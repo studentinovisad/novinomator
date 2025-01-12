@@ -25,3 +25,17 @@ resource "aws_lambda_permission" "ses_invoke" {
   principal     = "ses.amazonaws.com"
   function_name = var.lambda_function_name
 }
+
+data "aws_iam_policy_document" "send_email" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ses:SendEmail"]
+    resources = ["arn:aws:ses:eu-central-1:491085392196:identity/*"]
+  }
+}
+
+resource "aws_iam_policy" "send_email" {
+  name        = "${var.domain_name}-ses-identity-policy"
+  description = "IAM policy for sending email via SES for Lambda"
+  policy      = data.aws_iam_policy_document.send_email.json
+}

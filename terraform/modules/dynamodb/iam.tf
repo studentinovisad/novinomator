@@ -87,3 +87,45 @@ resource "aws_iam_policy" "update_item" {
   description = "IAM policy for updating items inside the DynamoDB table"
   policy      = data.aws_iam_policy_document.update_item.json
 }
+
+# Get / Put / Delete / Update
+data "aws_iam_policy_document" "gpdu_item" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:UpdateItem"
+    ]
+    resources = ["${aws_dynamodb_table.table.arn}"]
+  }
+}
+
+resource "aws_iam_policy" "gpdu_item" {
+  name        = "${var.table_name}-gpdu-item-policy"
+  description = "IAM policy for Get/Put/Delete/Update operations on items inside the DynamoDB table"
+  policy      = data.aws_iam_policy_document.gpdu_item.json
+}
+
+# ALL OF THE ABOVE
+data "aws_iam_policy_document" "all_item" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:Scan",
+      "dynamodb:Query",
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:UpdateItem"
+    ]
+    resources = ["${aws_dynamodb_table.table.arn}"]
+  }
+}
+
+resource "aws_iam_policy" "all_item" {
+  name        = "${var.table_name}-all-item-policy"
+  description = "IAM policy for all operations on items inside the DynamoDB table"
+  policy      = data.aws_iam_policy_document.all_item.json
+}

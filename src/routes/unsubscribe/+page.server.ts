@@ -26,6 +26,7 @@ export const actions: Actions = {
 				message: 'Invalid form inputs'
 			});
 		}
+		const { email, topics } = form.data;
 
 		try {
 			const tableName = env.CONFIRM_UNSUBSCRIPTIONS_TABLE_NAME;
@@ -44,12 +45,11 @@ export const actions: Actions = {
 				ttlS === ''
 			) {
 				throw new Error(
-					'Missing CONFIRM_SUBSCRIPTIONS_TABLE_NAME, SENDER_EMAIL and ORIGIN env vars'
+					'Missing CONFIRM_SUBSCRIPTIONS_TABLE_NAME, SENDER_EMAIL, ORIGIN and VERIFY_TTL env vars'
 				);
 			}
 
 			const { client } = locals;
-			const { email, topics } = form.data;
 			const uuid = uuidv4();
 			const ttl = Number.parseInt(ttlS);
 			await createVerification(client.dynamodb, tableName, email, topics, uuid, ttl);
@@ -60,13 +60,13 @@ export const actions: Actions = {
 			console.error(`Failed to send confirmation email: ${(e as Error).message}`);
 			return fail(500, {
 				form,
-				message: 'Internal Server Error'
+				message: `Internal Server Error: ${(e as Error).message}`
 			});
 		}
 
 		return {
 			form,
-			message: 'Successfully sent confirmation email'
+			message: `Successfully sent confirmation email to ${email} for topics: ${topics}`
 		};
 	}
 };
