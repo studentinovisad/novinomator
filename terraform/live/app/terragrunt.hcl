@@ -20,6 +20,6 @@ inputs = {
   redirector_path  = "../../../src/redirector.py"
   ses_domain_name  = include.root.locals.domain_name
   ses_recipients   = ["newsletter@${include.root.locals.domain_name}"]
-  whitelist        = ["sir@tmina.org"]
+  whitelist        = ["sir@tmina.org", "oliverkozul@gmail.com"]
   valid_topics     = ["test", "test2", "test3"]
 }
