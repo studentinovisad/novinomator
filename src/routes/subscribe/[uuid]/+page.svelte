@@ -1,19 +1,13 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import Logo from '$lib/components/custom/logo/logo.svelte';
 
 	let { data } = $props();
 
-	const msg = $derived.by(() => {
-		const nonEmptyMsg = data.message ?? '';
-		if (page.status === 200) {
-			toast.success(nonEmptyMsg);
-		} else {
-			toast.error(nonEmptyMsg);
-		}
-		return nonEmptyMsg;
+	const msg = $derived(data.message);
+	$effect(() => {
+		toast.success(msg);
 	});
 </script>
 
