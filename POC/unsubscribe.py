@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     subscribers_table = boto3.resource("dynamodb").Table(subscriptions_table_name)
 
     user_uuid = str(event["queryStringParameters"]["uuid"])
-    topics_to_remove = event["queryStringParameters"]["subscribed_topics"]
+    topics_to_remove = event["queryStringParameters"]["topics"]
 
     try:
         user_info = get_user_info(unconfirmed_subscribers_table, user_uuid)
@@ -41,15 +41,13 @@ def get_user_info(table, user_uuid: str) -> dict:
 
 
 def remove_user_topics(table, user_info: dict, topics_to_remove: list[str]):
-    user_info["subscribed_topics"] = set(user_info["subscribed_topics"]) - set(
-        topics_to_remove
-    )
+    user_info["topics"] = set(user_info["topics"]) - set(topics_to_remove)
 
-    if user_info["subscribed_topics"]:
+    if user_info["topics"]:
         table.update_item(
             Key={"email": user_info["email"]},
-            UpdateExpression="SET subscribed_topics = :topics",
-            ExpressionAttributeValues={":topics": user_info["subscribed_topics"]},
+            UpdateExpression="SET topics = :topics",
+            ExpressionAttributeValues={":topics": user_info["topics"]},
         )
         print(f"Removed topics from user with email: {user_info['email']}")
     else:

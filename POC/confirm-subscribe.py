@@ -34,7 +34,7 @@ def add_user(table, email: str, topics: list[str], recipient_uuid: str, ttl: int
         Item={
             "uuid": recipient_uuid,
             "email": email,
-            "subscribed_topics": topics,
+            "topics": topics,
             "ttl": int(time.time()) + int(ttl),
         }
     )

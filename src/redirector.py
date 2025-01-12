@@ -112,7 +112,7 @@ def get_all_users_by_topics(table, topics: list[str]) -> list:
     return [
         user["email"]
         for user in users
-        if any(topic in user["subscribed_topics"] for topic in topics)
+        if any(topic in user["topics"] for topic in topics)
     ]
 
 
