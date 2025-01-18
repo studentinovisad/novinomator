@@ -3,15 +3,16 @@ import boto3
 from botocore.exceptions import ClientError
 from typing import Tuple
 from email.parser import Parser
-import re
 from quopri import decodestring
+import re
 
 
 def lambda_handler(event, context):
     whitelist = os.getenv("WHITELIST")
     server_sender_email = os.getenv("SENDER_EMAIL")
-    bucket_name = os.getenv("BUCKET_NAME")
-    table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
+    bucket_name = os.getenv("EMAIL_BUCKET_NAME")
+    subscriptions_table_name = os.getenv("SUBSCRIPTIONS_TABLE_NAME")
+    emails_table_name = os.getenv("EMAILS_TABLE_NAME")
     unsubscribe_url = os.getenv("UNSUBSCRIBE_URL")
     valid_topics = os.getenv("VALID_TOPICS")
 
@@ -21,7 +22,8 @@ def lambda_handler(event, context):
             whitelist,
             server_sender_email,
             bucket_name,
-            table_name,
+            subscriptions_table_name,
+            emails_table_name,
             unsubscribe_url,
             valid_topics,
         ]
@@ -31,38 +33,19 @@ def lambda_handler(event, context):
     whitelist = whitelist.split(",")
     valid_topics = valid_topics.split(",")
     bucket = boto3.resource("s3").Bucket(bucket_name)
-    table = boto3.resource("dynamodb").Table(table_name)
+    subscriptions_table = boto3.resource("dynamodb").Table(subscriptions_table_name)
+    emails_table = boto3.resource("dynamodb").Table(emails_table_name)
 
     info = event["Records"][0]["ses"]["mail"]
-    messageId = info["messageId"]
-    emailInfo = get_email_info(bucket, messageId)
+    date = info["commonHeaders"]["date"]
     newsletter_sender = info["source"]
+    messageId = info["messageId"]
+    subject_body = info["commonHeaders"]["subject"]
+    email_body_plain, email_body_html = get_email_body(bucket, messageId)
 
     if newsletter_sender not in whitelist:
         print("Sender not in whitelist.")
         return {"statusCode": 403, "body": "Forbidden"}
-
-    match = re.search(
-        r'Content-Type: text/plain; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
-    )
-
-    if match:
-        email_body_plain = match.group(1).strip()
-    else:
-        print("No text content found in the email.")
-        return {"statusCode": 400, "body": "No text content found in the email."}
-
-    match = re.search(
-        r'Content-Type: text/html; charset="UTF-8"\s+(.*?)\s+--', emailInfo, re.DOTALL
-    )
-
-    if match:
-        email_body_html = match.group(1).strip()
-    else:
-        print("No text content found in the email.")
-        return {"statusCode": 400, "body": "No text content found in the email."}
-
-    subject_body = info["commonHeaders"]["subject"]
 
     try:
         topics, email_subject = extract_topics_and_subject(valid_topics, subject_body)
@@ -71,7 +54,8 @@ def lambda_handler(event, context):
         reply_to_sender(server_sender_email, newsletter_sender, valid_topics)
         return {"statusCode": 400, "body": "Invalid topics or subject"}
 
-    subscribers = get_all_users_by_topics(table, topics)
+    archive_email(emails_table, messageId, date, newsletter_sender, email_subject, topics)
+    subscribers = get_all_users_by_topics(subscriptions_table, topics)
 
     send_newsletter(
         server_sender_email,
@@ -90,16 +74,17 @@ def get_email_body(bucket, messageId: str) -> Tuple[str, str]:
     emailRawString = response['Body'].read().decode('utf-8')
     parser = Parser()
     emailString = parser.parsestr(emailRawString)
-    toAddress = emailString.get('To').split(",")
     if emailString.is_multipart():
         for part in emailString.walk():
             if part.get_content_type() == 'text/plain':
-                body = part.get_payload()
+                plain_body = part.get_payload()
+            elif part.get_content_type() == 'text/html':
+                html_body = part.get_payload()
     else:
-        body = emailString.get_payload()
+        plain_body = emailString.get_payload()
+        html_body = emailString.get_payload()
 
-
-    return decodestring(body)
+    return decodestring(plain_body).decode("utf-8"), decodestring(html_body).decode("utf-8")
 
 
 def extract_topics_and_subject(valid_topics: list[str], subject_body: str) -> tuple:
@@ -116,6 +101,24 @@ def extract_topics_and_subject(valid_topics: list[str], subject_body: str) -> tu
         raise ValueError("Either no topics found or invalid format")
 
     return topics, subject
+
+
+def archive_email(table, 
+    messageId: str, 
+    date: str, 
+    sender: str, 
+    subject: str, 
+    topics: list[str]
+):
+    table.put_item(
+        Item={
+            "messageId": messageId,
+            "date": date,
+            "sender": sender,
+            "subject": subject,
+            "topics": topics,
+        }
+    )
 
 
 def get_all_users_by_topics(table, topics: list[str]) -> list:
