@@ -1,7 +1,10 @@
 import os
 import boto3
 from botocore.exceptions import ClientError
+from typing import Tuple
+from email.parser import Parser
 import re
+from quopri import decodestring
 
 
 def lambda_handler(event, context):
@@ -82,11 +85,21 @@ def lambda_handler(event, context):
     return {"statusCode": 200, "body": "OK"}
 
 
-def get_email_info(bucket, messageId: str) -> str:
+def get_email_body(bucket, messageId: str) -> Tuple[str, str]:
     response = bucket.Object(messageId).get()
-    email_info = response["Body"].read().decode("utf-8")
+    emailRawString = response['Body'].read().decode('utf-8')
+    parser = Parser()
+    emailString = parser.parsestr(emailRawString)
+    toAddress = emailString.get('To').split(",")
+    if emailString.is_multipart():
+        for part in emailString.walk():
+            if part.get_content_type() == 'text/plain':
+                body = part.get_payload()
+    else:
+        body = emailString.get_payload()
 
-    return email_info
+
+    return decodestring(body)
 
 
 def extract_topics_and_subject(valid_topics: list[str], subject_body: str) -> tuple:
